@@ -7,6 +7,7 @@ document.addEventListener("DOMContentLoaded", function () {
   };
   test01;
   test02;
+  test03;
   // Loop through elements that have the data-animation attribute
   document.querySelectorAll("[data-animation]").forEach(function (element) {
     let $this = element,
