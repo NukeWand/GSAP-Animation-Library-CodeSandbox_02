@@ -5,9 +5,7 @@ document.addEventListener("DOMContentLoaded", function () {
     mobileLandscape: 767,
     tablet: 991,
   };
-  testing;
-  test;
-  test3;
+  test01;
   // Loop through elements that have the data-animation attribute
   document.querySelectorAll("[data-animation]").forEach(function (element) {
     let $this = element,
