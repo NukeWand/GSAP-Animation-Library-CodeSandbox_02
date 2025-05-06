@@ -1,3 +1,8 @@
+function getNumber(value, fallback = 0) {
+  const num = parseFloat(value);
+  return isNaN(num) ? fallback : num;
+}
+
 document.addEventListener("DOMContentLoaded", function () {
   // Define breakpoints for different screen sizes
   const breakpoints = {
@@ -5,10 +10,7 @@ document.addEventListener("DOMContentLoaded", function () {
     mobileLandscape: 767,
     tablet: 991,
   };
-  test01;
-  test02;
-  test03;
-  //shit piss krc take 2 asdasdsadasd
+
   // Loop through elements that have the data-animation attribute
   document.querySelectorAll("[data-animation]").forEach(function (element) {
     let $this = element,
@@ -37,7 +39,20 @@ document.addEventListener("DOMContentLoaded", function () {
     const animationName = $this.getAttribute("data-animation");
     const animationType = $this.getAttribute("data-animation-type");
     const duration = parseFloat($this.getAttribute("data-duration")) || 1;
-    const stagger = parseFloat($this.getAttribute("data-stagger")) || 0.5;
+    const stagger = parseFloat($this.getAttribute("data-stagger")) || 0.1;
+    const toggleActions =
+      $this.getAttribute("data-toggle-actions") || "play none none reverse";
+
+    if (["words", "letters"].includes(animationType)) {
+      // 👇 This ensures SplitText is actually doing something
+      split = new SplitText($this, {
+        type: animationType === "words" ? "words" : "chars",
+        tagName: "span",
+      });
+
+      // 🔍 Double check split output (optional)
+      console.log(split);
+    }
 
     // Set up animation parameters for GSAP
     const params = {
@@ -48,6 +63,9 @@ document.addEventListener("DOMContentLoaded", function () {
         trigger: $this,
         start: $this.getAttribute("data-start") || "top 90%",
         end: $this.getAttribute("data-end") || "bottom top",
+        scrub: $this.getAttribute("data-scrub") === "true" ? true : false, // Ensures scrub is true or false
+        markers: $this.getAttribute("data-debug") === "true", // Explicit boolean check
+        toggleActions: toggleActions, // Correctly applying toggleActions
       },
     };
 
@@ -59,7 +77,7 @@ document.addEventListener("DOMContentLoaded", function () {
         typeof animations[animationName][animationType] === "function"
       ) {
         // Run the animation with the appropriate parameters
-        animations[animationName][animationType]($this, params);
+        animations[animationName][animationType]($this, params, animationType);
       } else {
         console.warn(
           `Animation type "${animationType}" not found for "${animationName}"`
@@ -76,8 +94,8 @@ const animations = {
       gsap.from(element, {
         opacity: 0,
         yPercent: 50, // Changed from y to yPercent for more responsive effect
-        duration: (params.duration, 1.2),
-        ease: (params.ease, "power1.out"),
+        duration: params.duration || 1,
+        ease: params.ease || "power1.out",
         scrollTrigger: params.scrollTrigger, // Directly using scrollTrigger from params
         onComplete: () => $(element).css("transition-property", ""),
       });
@@ -91,14 +109,9 @@ const animations = {
         {
           opacity: 1,
           yPercent: 0,
-          duration: getNumber(params.duration, 1.2),
-          ease: (params.ease, "power1.out"),
-          scrollTrigger: {
-            start: (params.start, "top 80%"),
-            end: (params.end, "bottom 20%"),
-            toggleActions: (params.toggleActions, "play none none reverse"),
-            scrub: getBoolean(params.scrub, true),
-          },
+          duration: params.duration || 1,
+          ease: params.ease || "power1.out",
+          scrollTrigger: params.scrollTrigger,
           onComplete: () => $(element).css("transition-property", ""),
         }
       );
@@ -114,15 +127,10 @@ const animations = {
       gsap.from($(element).children(), {
         opacity: 0,
         yPercent: 50, // Changed from y to yPercent
-        duration: getNumber(params.duration, 1.2),
-        ease: (params.ease, "power1.out"),
+        duration: params.duration || 1,
+        ease: params.ease || "power1.out",
         stagger: getNumber(params.stagger, 0.1),
-        scrollTrigger: {
-          start: (params.start, "top 80%"),
-          end: (params.end, "bottom 20%"),
-          toggleActions: (params.toggleActions, "play none none reverse"),
-          scrub: getBoolean(params.scrub, true),
-        },
+        scrollTrigger: params.scrollTrigger,
         onComplete: () => {
           $(element)
             .children()
@@ -135,13 +143,29 @@ const animations = {
 
     // ➕ Added support for word-based animation
     words: (element, params = {}) => {
-      gsap.from($(element).find(".word"), {
+      // Step 1: Split text into words using GSAP SplitText
+      const split = new SplitText(element, {
+        type: "words",
+        tagName: "span", // Wrap each word in a <span> element
+      });
+
+      // Step 2: Get the split words
+      const words = split.words;
+
+      // Step 3: Exit if no words found
+      if (!words.length) {
+        console.warn("No words found in:", element);
+        return;
+      }
+
+      // Step 4: Animate the words
+      gsap.from(words, {
         opacity: 0,
-        yPercent: 100, // Adjusted from 120 to 100 for a cleaner reveal
-        duration: getNumber(params.duration, 1.2),
-        ease: (params.ease, "back.out(2)"),
-        stagger: getNumber(params.stagger, 0.05),
-        scrollTrigger: params.scrollTrigger,
+        yPercent: 100, // Make the words start below and fade in
+        duration: getNumber(params.duration, 1), // Default duration if not provided
+        ease: params.ease || "back.out(2)", // Default easing if not provided
+        stagger: getNumber(params.stagger, 0.05), // Use the stagger value from the data attribute
+        scrollTrigger: params.scrollTrigger || undefined, // ScrollTrigger parameters
       });
     },
 
@@ -149,8 +173,8 @@ const animations = {
     letters: (element, params = {}) => {
       gsap.from($(element).find(".char"), {
         yPercent: 100, // Adjusted from 120 to 100 for consistency
-        duration: getNumber(params.duration, 1.2),
-        ease: (params.ease, "power1.out"),
+        duration: params.duration || 1,
+        ease: params.ease || "power1.out",
         stagger: getNumber(params.stagger, 0.05),
         scrollTrigger: params.scrollTrigger,
       });
@@ -163,8 +187,8 @@ const animations = {
       gsap.from(element, {
         opacity: 0,
         yPercent: -50, // Start above the screen
-        duration: getNumber(params.duration, 1.2),
-        ease: (params.ease, "power1.out"),
+        duration: params.duration || 1,
+        ease: params.ease || "power1.out",
         scrollTrigger: params.scrollTrigger, // Directly using scrollTrigger from params
         onComplete: () => $(element).css("transition-property", ""),
       });
@@ -178,13 +202,13 @@ const animations = {
         {
           opacity: 1,
           yPercent: 0, // End at its original position
-          duration: getNumber(params.duration, 1.2),
-          ease: (params.ease, "power1.out"),
+          duration: params.duration || 1,
+          ease: params.ease || "power1.out",
           scrollTrigger: {
-            start: (params.start, "top 80%"),
-            end: (params.end, "bottom 20%"),
-            toggleActions: (params.toggleActions, "play none none reverse"),
-            scrub: getBoolean(params.scrub, true),
+            start: params.start || "top 80%",
+            end: params.end || "bottom 20%",
+            toggleActions: params.toggleActions || "play none none reverse",
+            scrub: params.scrub !== undefined ? params.scrub : true,
           },
           onComplete: () => $(element).css("transition-property", ""),
         }
@@ -201,14 +225,14 @@ const animations = {
       gsap.from($(element).children(), {
         opacity: 0,
         yPercent: -50, // Start above the screen for staggered items
-        duration: getNumber(params.duration, 1.2),
-        ease: (params.ease, "power1.out"),
+        duration: params.duration || 1,
+        ease: params.ease || "power1.out",
         stagger: getNumber(params.stagger, 0.1),
         scrollTrigger: {
-          start: (params.start, "top 80%"),
-          end: (params.end, "bottom 20%"),
-          toggleActions: (params.toggleActions, "play none none reverse"),
-          scrub: getBoolean(params.scrub, true),
+          start: params.start || "top 80%",
+          end: params.end || "bottom 20%",
+          toggleActions: params.toggleActions || "play none none reverse",
+          scrub: params.scrub !== undefined ? params.scrub : true,
         },
         onComplete: () => {
           $(element)
@@ -225,8 +249,8 @@ const animations = {
       gsap.from($(element).find(".word"), {
         opacity: 0,
         yPercent: -50, // Start above the screen
-        duration: getNumber(params.duration, 1.2),
-        ease: (params.ease, "back.out(2)"),
+        duration: params.duration || 1,
+        ease: params.ease || "back.out(2)",
         stagger: getNumber(params.stagger, 0.05),
         scrollTrigger: params.scrollTrigger,
       });
@@ -237,8 +261,8 @@ const animations = {
       gsap.from($(element).find(".char"), {
         opacity: 0,
         yPercent: -50, // Start above the screen
-        duration: getNumber(params.duration, 1.2),
-        ease: (params.ease, "power1.out"),
+        duration: params.duration || 1,
+        ease: params.ease || "power1.out",
         stagger: getNumber(params.stagger, 0.05),
         scrollTrigger: params.scrollTrigger,
       });
@@ -250,8 +274,8 @@ const animations = {
       $(element).css("transition-property", "none");
       gsap.from(element, {
         opacity: 0, // Start with 0 opacity for fade-in effect
-        duration: getNumber(params.duration, 1.2),
-        ease: (params.ease, "power1.out"),
+        duration: params.duration || 1,
+        ease: params.ease || "power1.out",
         scrollTrigger: params.scrollTrigger, // Directly using scrollTrigger from params
         onComplete: () => $(element).css("transition-property", ""),
       });
@@ -264,13 +288,13 @@ const animations = {
         { opacity: 0 }, // Start with 0 opacity
         {
           opacity: 1, // Fade to 100% opacity
-          duration: getNumber(params.duration, 1.2),
-          ease: (params.ease, "power1.out"),
+          duration: params.duration || 1,
+          ease: params.ease || "power1.out",
           scrollTrigger: {
-            start: (params.start, "top 80%"),
-            end: (params.end, "bottom 20%"),
-            toggleActions: (params.toggleActions, "play none none reverse"),
-            scrub: getBoolean(params.scrub, true),
+            start: params.start || "top 80%",
+            end: params.end || "bottom 20%",
+            toggleActions: params.toggleActions || "play none none reverse",
+            scrub: params.scrub !== undefined ? params.scrub : true,
           },
           onComplete: () => $(element).css("transition-property", ""),
         }
@@ -286,14 +310,14 @@ const animations = {
 
       gsap.from($(element).children(), {
         opacity: 0, // Start with 0 opacity
-        duration: getNumber(params.duration, 1.2),
-        ease: (params.ease, "power1.out"),
+        duration: params.duration || 1,
+        ease: params.ease || "power1.out",
         stagger: getNumber(params.stagger, 0.1),
         scrollTrigger: {
-          start: (params.start, "top 80%"),
-          end: (params.end, "bottom 20%"),
-          toggleActions: (params.toggleActions, "play none none reverse"),
-          scrub: getBoolean(params.scrub, true),
+          start: params.start || "top 80%",
+          end: params.end || "bottom 20%",
+          toggleActions: params.toggleActions || "play none none reverse",
+          scrub: params.scrub !== undefined ? params.scrub : true,
         },
         onComplete: () => {
           $(element)
@@ -309,8 +333,8 @@ const animations = {
     words: (element, params = {}) => {
       gsap.from($(element).find(".word"), {
         opacity: 0, // Start with 0 opacity
-        duration: getNumber(params.duration, 1.2),
-        ease: (params.ease, "back.out(2)"),
+        duration: params.duration || 1,
+        ease: params.ease || "back.out(2)",
         stagger: getNumber(params.stagger, 0.05),
         scrollTrigger: params.scrollTrigger,
       });
@@ -320,8 +344,8 @@ const animations = {
     letters: (element, params = {}) => {
       gsap.from($(element).find(".char"), {
         opacity: 0, // Start with 0 opacity
-        duration: getNumber(params.duration, 1.2),
-        ease: (params.ease, "power1.out"),
+        duration: params.duration || 1,
+        ease: params.ease || "power1.out",
         stagger: getNumber(params.stagger, 0.05),
         scrollTrigger: params.scrollTrigger,
       });
@@ -334,8 +358,8 @@ const animations = {
       gsap.from(element, {
         opacity: 0, // Start with 0 opacity
         xPercent: -50, // Start the element off-screen to the left
-        duration: getNumber(params.duration, 1.2),
-        ease: (params.ease, "power1.out"),
+        duration: params.duration || 1,
+        ease: params.ease || "power1.out",
         scrollTrigger: params.scrollTrigger, // Directly using scrollTrigger from params
         onComplete: () => $(element).css("transition-property", ""),
       });
@@ -349,13 +373,13 @@ const animations = {
         {
           opacity: 1, // Fade to full opacity
           xPercent: 0, // Move the element to its original position
-          duration: getNumber(params.duration, 1.2),
-          ease: (params.ease, "power1.out"),
+          duration: params.duration || 1,
+          ease: params.ease || "power1.out",
           scrollTrigger: {
-            start: (params.start, "top 80%"),
-            end: (params.end, "bottom 20%"),
-            toggleActions: (params.toggleActions, "play none none reverse"),
-            scrub: getBoolean(params.scrub, true),
+            start: params.start || "top 80%",
+            end: params.end || "bottom 20%",
+            toggleActions: params.toggleActions || "play none none reverse",
+            scrub: params.scrub !== undefined ? params.scrub : true,
           },
           onComplete: () => $(element).css("transition-property", ""),
         }
@@ -372,14 +396,14 @@ const animations = {
       gsap.from($(element).children(), {
         opacity: 0, // Start with opacity 0
         xPercent: -50, // Start off-screen to the left for staggered items
-        duration: getNumber(params.duration, 1.2),
-        ease: (params.ease, "power1.out"),
+        duration: params.duration || 1,
+        ease: params.ease || "power1.out",
         stagger: getNumber(params.stagger, 0.1),
         scrollTrigger: {
-          start: (params.start, "top 80%"),
-          end: (params.end, "bottom 20%"),
-          toggleActions: (params.toggleActions, "play none none reverse"),
-          scrub: getBoolean(params.scrub, true),
+          start: params.start || "top 80%",
+          end: params.end || "bottom 20%",
+          toggleActions: params.toggleActions || "play none none reverse",
+          scrub: params.scrub !== undefined ? params.scrub : true,
         },
         onComplete: () => {
           $(element)
@@ -396,8 +420,8 @@ const animations = {
       gsap.from($(element).find(".word"), {
         opacity: 0, // Start with 0 opacity
         xPercent: -50, // Start off-screen to the left
-        duration: getNumber(params.duration, 1.2),
-        ease: (params.ease, "back.out(2)"),
+        duration: params.duration || 1,
+        ease: params.ease || "back.out(2)",
         stagger: getNumber(params.stagger, 0.05),
         scrollTrigger: params.scrollTrigger,
       });
@@ -408,8 +432,8 @@ const animations = {
       gsap.from($(element).find(".char"), {
         opacity: 0, // Start with 0 opacity
         xPercent: -50, // Start off-screen to the left
-        duration: getNumber(params.duration, 1.2),
-        ease: (params.ease, "power1.out"),
+        duration: params.duration || 1,
+        ease: params.ease || "power1.out",
         stagger: getNumber(params.stagger, 0.05),
         scrollTrigger: params.scrollTrigger,
       });
@@ -422,8 +446,8 @@ const animations = {
       gsap.from(element, {
         opacity: 0, // Start with 0 opacity
         xPercent: 50, // Start the element off-screen to the right
-        duration: getNumber(params.duration, 1.2),
-        ease: (params.ease, "power1.out"),
+        duration: params.duration || 1,
+        ease: params.ease || "power1.out",
         scrollTrigger: params.scrollTrigger, // Directly using scrollTrigger from params
         onComplete: () => $(element).css("transition-property", ""),
       });
@@ -437,13 +461,13 @@ const animations = {
         {
           opacity: 1, // Fade to full opacity
           xPercent: 0, // Move the element to its original position
-          duration: getNumber(params.duration, 1.2),
-          ease: (params.ease, "power1.out"),
+          duration: params.duration || 1,
+          ease: params.ease || "power1.out",
           scrollTrigger: {
-            start: (params.start, "top 80%"),
-            end: (params.end, "bottom 20%"),
-            toggleActions: (params.toggleActions, "play none none reverse"),
-            scrub: getBoolean(params.scrub, true),
+            start: params.start || "top 80%",
+            end: params.end || "bottom 20%",
+            toggleActions: params.toggleActions || "play none none reverse",
+            scrub: params.scrub !== undefined ? params.scrub : true,
           },
           onComplete: () => $(element).css("transition-property", ""),
         }
@@ -460,14 +484,14 @@ const animations = {
       gsap.from($(element).children(), {
         opacity: 0, // Start with opacity 0
         xPercent: 50, // Start off-screen to the right for staggered items
-        duration: getNumber(params.duration, 1.2),
-        ease: (params.ease, "power1.out"),
+        duration: params.duration || 1,
+        ease: params.ease || "power1.out",
         stagger: getNumber(params.stagger, 0.1),
         scrollTrigger: {
-          start: (params.start, "top 80%"),
-          end: (params.end, "bottom 20%"),
-          toggleActions: (params.toggleActions, "play none none reverse"),
-          scrub: getBoolean(params.scrub, true),
+          start: params.start || "top 80%",
+          end: params.end || "bottom 20%",
+          toggleActions: params.toggleActions || "play none none reverse",
+          scrub: params.scrub !== undefined ? params.scrub : true,
         },
         onComplete: () => {
           $(element)
@@ -484,8 +508,8 @@ const animations = {
       gsap.from($(element).find(".word"), {
         opacity: 0, // Start with 0 opacity
         xPercent: 50, // Start off-screen to the right
-        duration: getNumber(params.duration, 1.2),
-        ease: (params.ease, "back.out(2)"),
+        duration: params.duration || 1,
+        ease: params.ease || "back.out(2)",
         stagger: getNumber(params.stagger, 0.05),
         scrollTrigger: params.scrollTrigger,
       });
@@ -496,8 +520,8 @@ const animations = {
       gsap.from($(element).find(".char"), {
         opacity: 0, // Start with 0 opacity
         xPercent: 50, // Start off-screen to the right
-        duration: getNumber(params.duration, 1.2),
-        ease: (params.ease, "power1.out"),
+        duration: params.duration || 1,
+        ease: params.ease || "power1.out",
         stagger: getNumber(params.stagger, 0.05),
         scrollTrigger: params.scrollTrigger,
       });
@@ -510,8 +534,8 @@ const animations = {
       gsap.from(element, {
         opacity: 0, // Start with 0 opacity
         scale: 0.5, // Start scaled down
-        duration: getNumber(params.duration, 1.2),
-        ease: (params.ease, "power1.out"),
+        duration: params.duration || 1,
+        ease: params.ease || "power1.out",
         scrollTrigger: params.scrollTrigger, // Directly using scrollTrigger from params
         onComplete: () => $(element).css("transition-property", ""),
       });
@@ -525,13 +549,13 @@ const animations = {
         {
           opacity: 1, // Fade to full opacity
           scale: 1, // Scale to original size
-          duration: getNumber(params.duration, 1.2),
-          ease: (params.ease, "power1.out"),
+          duration: params.duration || 1,
+          ease: params.ease || "power1.out",
           scrollTrigger: {
-            start: (params.start, "top 80%"),
-            end: (params.end, "bottom 20%"),
-            toggleActions: (params.toggleActions, "play none none reverse"),
-            scrub: getBoolean(params.scrub, true),
+            start: params.start || "top 80%",
+            end: params.end || "bottom 20%",
+            toggleActions: params.toggleActions || "play none none reverse",
+            scrub: params.scrub !== undefined ? params.scrub : true,
           },
           onComplete: () => $(element).css("transition-property", ""),
         }
@@ -548,14 +572,14 @@ const animations = {
       gsap.from($(element).children(), {
         opacity: 0, // Start with 0 opacity
         scale: 0.5, // Start scaled down
-        duration: getNumber(params.duration, 1.2),
-        ease: (params.ease, "power1.out"),
+        duration: params.duration || 1,
+        ease: params.ease || "power1.out",
         stagger: getNumber(params.stagger, 0.1),
         scrollTrigger: {
-          start: (params.start, "top 80%"),
-          end: (params.end, "bottom 20%"),
-          toggleActions: (params.toggleActions, "play none none reverse"),
-          scrub: getBoolean(params.scrub, true),
+          start: params.start || "top 80%",
+          end: params.end || "bottom 20%",
+          toggleActions: params.toggleActions || "play none none reverse",
+          scrub: params.scrub !== undefined ? params.scrub : true,
         },
         onComplete: () => {
           $(element)
@@ -572,8 +596,8 @@ const animations = {
       gsap.from($(element).find(".word"), {
         opacity: 0, // Start with 0 opacity
         scale: 0.5, // Start scaled down
-        duration: getNumber(params.duration, 1.2),
-        ease: (params.ease, "back.out(2)"),
+        duration: params.duration || 1,
+        ease: params.ease || "back.out(2)",
         stagger: getNumber(params.stagger, 0.05),
         scrollTrigger: params.scrollTrigger,
       });
@@ -584,8 +608,8 @@ const animations = {
       gsap.from($(element).find(".char"), {
         opacity: 0, // Start with 0 opacity
         scale: 0.5, // Start scaled down
-        duration: getNumber(params.duration, 1.2),
-        ease: (params.ease, "power1.out"),
+        duration: params.duration || 1,
+        ease: params.ease || "power1.out",
         stagger: getNumber(params.stagger, 0.05),
         scrollTrigger: params.scrollTrigger,
       });
