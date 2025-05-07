@@ -2,7 +2,7 @@ function getNumber(value, fallback = 0) {
   const num = parseFloat(value);
   return isNaN(num) ? fallback : num;
 }
-
+//Update_04
 function splitText(element, type = "words") {
   const split = new SplitText(element, {
     type: type,
