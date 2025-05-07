@@ -508,7 +508,7 @@ const animations = {
         onComplete: () => $(element).css("transition-property", ""),
       });
     },
-  
+
     scroll: (element, params = {}) => {
       $(element).css("transition-property", "none");
       gsap.fromTo(
@@ -524,14 +524,14 @@ const animations = {
         }
       );
     },
-  
+
     stagger: (element, params = {}) => {
       $(element)
         .children()
         .each(function () {
           $(this).css("transition-property", "none");
         });
-  
+
       gsap.from($(element).children(), {
         opacity: 0, // Start with 0 opacity
         scale: 0.5, // Start scaled down
@@ -548,7 +548,7 @@ const animations = {
         },
       });
     },
-  
+
     // ➕ Added support for word-based animation with scale-in
     words: (element, params = {}) => {
       const words = splitText(element, "words");
@@ -562,7 +562,7 @@ const animations = {
         scrollTrigger: params.scrollTrigger,
       });
     },
-  
+
     // ➕ Added support for character-based animation with scale-in
     letters: (element, params = {}) => {
       const chars = splitText(element, "chars");
@@ -580,20 +580,20 @@ const animations = {
 
   "scale-up": {
     standard: (element, params = {}) => {
-      $(element).css('transition-property', 'none');
+      $(element).css("transition-property", "none");
       gsap.from(element, {
         opacity: 0,
         scale: 0.5,
         yPercent: 50,
         duration: params.duration || 1,
-        ease: params.ease || 'power1.out',
+        ease: params.ease || "power1.out",
         scrollTrigger: params.scrollTrigger,
-        onComplete: () => $(element).css('transition-property', ''),
+        onComplete: () => $(element).css("transition-property", ""),
       });
     },
 
     scroll: (element, params = {}) => {
-      $(element).css('transition-property', 'none');
+      $(element).css("transition-property", "none");
       gsap.fromTo(
         element,
         { opacity: 0, scale: 0.5, yPercent: 50 },
@@ -602,9 +602,9 @@ const animations = {
           scale: 1,
           yPercent: 0,
           duration: params.duration || 1,
-          ease: params.ease || 'power1.out',
+          ease: params.ease || "power1.out",
           scrollTrigger: params.scrollTrigger,
-          onComplete: () => $(element).css('transition-property', ''),
+          onComplete: () => $(element).css("transition-property", ""),
         }
       );
     },
@@ -613,7 +613,7 @@ const animations = {
       $(element)
         .children()
         .each(function () {
-          $(this).css('transition-property', 'none');
+          $(this).css("transition-property", "none");
         });
 
       gsap.from($(element).children(), {
@@ -621,47 +621,45 @@ const animations = {
         scale: 0.5,
         yPercent: 50,
         duration: params.duration || 1,
-        ease: params.ease || 'power1.out',
+        ease: params.ease || "power1.out",
         stagger: getNumber(params.stagger, 0.1),
         scrollTrigger: params.scrollTrigger,
         onComplete: () => {
           $(element)
             .children()
             .each(function () {
-              $(this).css('transition-property', '');
+              $(this).css("transition-property", "");
             });
         },
       });
     },
 
     words: (element, params = {}) => {
-      const words = splitText(element, 'words');
+      const words = splitText(element, "words");
       if (!words) return;
       gsap.from(words, {
         opacity: 0,
         scale: 0.5,
         yPercent: 50,
         duration: params.duration || 1,
-        ease: params.ease || 'back.out(2)',
+        ease: params.ease || "back.out(2)",
         stagger: getNumber(params.stagger, 0.1),
         scrollTrigger: params.scrollTrigger,
       });
     },
 
     letters: (element, params = {}) => {
-      const chars = splitText(element, 'chars');
+      const chars = splitText(element, "chars");
       if (!chars) return;
       gsap.from(chars, {
         opacity: 0,
         scale: 0.5,
         yPercent: 50,
         duration: params.duration || 1,
-        ease: params.ease || 'power1.out',
+        ease: params.ease || "power1.out",
         stagger: getNumber(params.stagger, 0.1),
         scrollTrigger: params.scrollTrigger,
       });
     },
   },
-}
-
-  
+};
