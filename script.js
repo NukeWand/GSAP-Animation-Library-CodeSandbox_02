@@ -3,6 +3,22 @@ function getNumber(value, fallback = 0) {
   return isNaN(num) ? fallback : num;
 }
 
+function splitText(element, type = "words") {
+  const split = new SplitText(element, {
+    type: type,
+    tagName: "span",
+  });
+
+  const parts = type === "words" ? split.words : split.chars;
+
+  if (!parts.length) {
+    console.warn(`No ${type} found in:`, element);
+    return null;
+  }
+
+  return parts;
+}
+
 document.addEventListener("DOMContentLoaded", function () {
   // Define breakpoints for different screen sizes
   const breakpoints = {
@@ -42,17 +58,6 @@ document.addEventListener("DOMContentLoaded", function () {
     const stagger = parseFloat($this.getAttribute("data-stagger")) || 0.1;
     const toggleActions =
       $this.getAttribute("data-toggle-actions") || "play none none reverse";
-
-    if (["words", "letters"].includes(animationType)) {
-      // 👇 This ensures SplitText is actually doing something
-      split = new SplitText($this, {
-        type: animationType === "words" ? "words" : "chars",
-        tagName: "span",
-      });
-
-      // 🔍 Double check split output (optional)
-      console.log(split);
-    }
 
     // Set up animation parameters for GSAP
     const params = {
@@ -143,39 +148,26 @@ const animations = {
 
     // ➕ Added support for word-based animation
     words: (element, params = {}) => {
-      // Step 1: Split text into words using GSAP SplitText
-      const split = new SplitText(element, {
-        type: "words",
-        tagName: "span", // Wrap each word in a <span> element
-      });
-
-      // Step 2: Get the split words
-      const words = split.words;
-
-      // Step 3: Exit if no words found
-      if (!words.length) {
-        console.warn("No words found in:", element);
-        return;
-      }
-
-      // Step 4: Animate the words
+      const words = splitText(element, "words");
+      if (!words) return;
       gsap.from(words, {
         opacity: 0,
-        yPercent: 100, // Make the words start below and fade in
-        duration: getNumber(params.duration, 1), // Default duration if not provided
-        ease: params.ease || "back.out(2)", // Default easing if not provided
-        stagger: getNumber(params.stagger, 0.05), // Use the stagger value from the data attribute
-        scrollTrigger: params.scrollTrigger || undefined, // ScrollTrigger parameters
+        yPercent: 100,
+        duration: getNumber(params.duration, 1),
+        ease: params.ease || "back.out(2)",
+        stagger: getNumber(params.stagger, 0.1),
+        scrollTrigger: params.scrollTrigger,
       });
     },
-
-    // ➕ Added support for character-based animation
     letters: (element, params = {}) => {
-      gsap.from($(element).find(".char"), {
-        yPercent: 100, // Adjusted from 120 to 100 for consistency
-        duration: params.duration || 1,
-        ease: params.ease || "power1.out",
-        stagger: getNumber(params.stagger, 0.05),
+      const chars = splitText(element, "chars");
+      if (!chars) return;
+      gsap.from(chars, {
+        opacity: 0,
+        yPercent: 100,
+        duration: getNumber(params.duration, 1),
+        ease: params.ease || "back.out(2)",
+        stagger: getNumber(params.stagger, 0.1),
         scrollTrigger: params.scrollTrigger,
       });
     },
@@ -204,12 +196,7 @@ const animations = {
           yPercent: 0, // End at its original position
           duration: params.duration || 1,
           ease: params.ease || "power1.out",
-          scrollTrigger: {
-            start: params.start || "top 80%",
-            end: params.end || "bottom 20%",
-            toggleActions: params.toggleActions || "play none none reverse",
-            scrub: params.scrub !== undefined ? params.scrub : true,
-          },
+          scrollTrigger: params.scrollTrigger,
           onComplete: () => $(element).css("transition-property", ""),
         }
       );
@@ -228,12 +215,7 @@ const animations = {
         duration: params.duration || 1,
         ease: params.ease || "power1.out",
         stagger: getNumber(params.stagger, 0.1),
-        scrollTrigger: {
-          start: params.start || "top 80%",
-          end: params.end || "bottom 20%",
-          toggleActions: params.toggleActions || "play none none reverse",
-          scrub: params.scrub !== undefined ? params.scrub : true,
-        },
+        scrollTrigger: params.scrollTrigger,
         onComplete: () => {
           $(element)
             .children()
@@ -246,24 +228,28 @@ const animations = {
 
     // ➕ Added support for word-based animation with fade down
     words: (element, params = {}) => {
-      gsap.from($(element).find(".word"), {
+      const words = splitText(element, "words");
+      if (!words) return;
+      gsap.from(words, {
         opacity: 0,
-        yPercent: -50, // Start above the screen
+        yPercent: -100, // Start above the screen
         duration: params.duration || 1,
         ease: params.ease || "back.out(2)",
-        stagger: getNumber(params.stagger, 0.05),
+        stagger: getNumber(params.stagger, 0.1),
         scrollTrigger: params.scrollTrigger,
       });
     },
 
     // ➕ Added support for character-based animation with fade down
     letters: (element, params = {}) => {
-      gsap.from($(element).find(".char"), {
+      const chars = splitText(element, "chars");
+      if (!chars) return;
+      gsap.from(chars, {
         opacity: 0,
-        yPercent: -50, // Start above the screen
+        yPercent: -100, // Start above the screen
         duration: params.duration || 1,
         ease: params.ease || "power1.out",
-        stagger: getNumber(params.stagger, 0.05),
+        stagger: getNumber(params.stagger, 0.1),
         scrollTrigger: params.scrollTrigger,
       });
     },
@@ -290,12 +276,7 @@ const animations = {
           opacity: 1, // Fade to 100% opacity
           duration: params.duration || 1,
           ease: params.ease || "power1.out",
-          scrollTrigger: {
-            start: params.start || "top 80%",
-            end: params.end || "bottom 20%",
-            toggleActions: params.toggleActions || "play none none reverse",
-            scrub: params.scrub !== undefined ? params.scrub : true,
-          },
+          scrollTrigger: params.scrollTrigger,
           onComplete: () => $(element).css("transition-property", ""),
         }
       );
@@ -313,12 +294,7 @@ const animations = {
         duration: params.duration || 1,
         ease: params.ease || "power1.out",
         stagger: getNumber(params.stagger, 0.1),
-        scrollTrigger: {
-          start: params.start || "top 80%",
-          end: params.end || "bottom 20%",
-          toggleActions: params.toggleActions || "play none none reverse",
-          scrub: params.scrub !== undefined ? params.scrub : true,
-        },
+        scrollTrigger: params.scrollTrigger,
         onComplete: () => {
           $(element)
             .children()
@@ -331,22 +307,26 @@ const animations = {
 
     // ➕ Added support for word-based animation with fade-in effect
     words: (element, params = {}) => {
-      gsap.from($(element).find(".word"), {
+      const words = splitText(element, "words");
+      if (!words) return;
+      gsap.from(words, {
         opacity: 0, // Start with 0 opacity
         duration: params.duration || 1,
         ease: params.ease || "back.out(2)",
-        stagger: getNumber(params.stagger, 0.05),
+        stagger: getNumber(params.stagger, 0.1),
         scrollTrigger: params.scrollTrigger,
       });
     },
 
     // ➕ Added support for character-based animation with fade-in effect
     letters: (element, params = {}) => {
-      gsap.from($(element).find(".char"), {
+      const chars = splitText(element, "chars");
+      if (!chars) return;
+      gsap.from(chars, {
         opacity: 0, // Start with 0 opacity
         duration: params.duration || 1,
         ease: params.ease || "power1.out",
-        stagger: getNumber(params.stagger, 0.05),
+        stagger: getNumber(params.stagger, 0.1),
         scrollTrigger: params.scrollTrigger,
       });
     },
@@ -375,12 +355,7 @@ const animations = {
           xPercent: 0, // Move the element to its original position
           duration: params.duration || 1,
           ease: params.ease || "power1.out",
-          scrollTrigger: {
-            start: params.start || "top 80%",
-            end: params.end || "bottom 20%",
-            toggleActions: params.toggleActions || "play none none reverse",
-            scrub: params.scrub !== undefined ? params.scrub : true,
-          },
+          scrollTrigger: params.scrollTrigger,
           onComplete: () => $(element).css("transition-property", ""),
         }
       );
@@ -399,12 +374,7 @@ const animations = {
         duration: params.duration || 1,
         ease: params.ease || "power1.out",
         stagger: getNumber(params.stagger, 0.1),
-        scrollTrigger: {
-          start: params.start || "top 80%",
-          end: params.end || "bottom 20%",
-          toggleActions: params.toggleActions || "play none none reverse",
-          scrub: params.scrub !== undefined ? params.scrub : true,
-        },
+        scrollTrigger: params.scrollTrigger,
         onComplete: () => {
           $(element)
             .children()
@@ -417,24 +387,28 @@ const animations = {
 
     // ➕ Added support for word-based animation with fade left
     words: (element, params = {}) => {
-      gsap.from($(element).find(".word"), {
+      const words = splitText(element, "words");
+      if (!words) return;
+      gsap.from(words, {
         opacity: 0, // Start with 0 opacity
         xPercent: -50, // Start off-screen to the left
         duration: params.duration || 1,
         ease: params.ease || "back.out(2)",
-        stagger: getNumber(params.stagger, 0.05),
+        stagger: getNumber(params.stagger, 0.1),
         scrollTrigger: params.scrollTrigger,
       });
     },
 
     // ➕ Added support for character-based animation with fade left
     letters: (element, params = {}) => {
-      gsap.from($(element).find(".char"), {
+      const chars = splitText(element, "chars");
+      if (!chars) return;
+      gsap.from(chars, {
         opacity: 0, // Start with 0 opacity
         xPercent: -50, // Start off-screen to the left
         duration: params.duration || 1,
         ease: params.ease || "power1.out",
-        stagger: getNumber(params.stagger, 0.05),
+        stagger: getNumber(params.stagger, 0.1),
         scrollTrigger: params.scrollTrigger,
       });
     },
@@ -463,12 +437,7 @@ const animations = {
           xPercent: 0, // Move the element to its original position
           duration: params.duration || 1,
           ease: params.ease || "power1.out",
-          scrollTrigger: {
-            start: params.start || "top 80%",
-            end: params.end || "bottom 20%",
-            toggleActions: params.toggleActions || "play none none reverse",
-            scrub: params.scrub !== undefined ? params.scrub : true,
-          },
+          scrollTrigger: params.scrollTrigger,
           onComplete: () => $(element).css("transition-property", ""),
         }
       );
@@ -487,12 +456,7 @@ const animations = {
         duration: params.duration || 1,
         ease: params.ease || "power1.out",
         stagger: getNumber(params.stagger, 0.1),
-        scrollTrigger: {
-          start: params.start || "top 80%",
-          end: params.end || "bottom 20%",
-          toggleActions: params.toggleActions || "play none none reverse",
-          scrub: params.scrub !== undefined ? params.scrub : true,
-        },
+        scrollTrigger: params.scrollTrigger,
         onComplete: () => {
           $(element)
             .children()
@@ -505,24 +469,28 @@ const animations = {
 
     // ➕ Added support for word-based animation with fade right
     words: (element, params = {}) => {
-      gsap.from($(element).find(".word"), {
+      const words = splitText(element, "words");
+      if (!words) return;
+      gsap.from(words, {
         opacity: 0, // Start with 0 opacity
         xPercent: 50, // Start off-screen to the right
         duration: params.duration || 1,
         ease: params.ease || "back.out(2)",
-        stagger: getNumber(params.stagger, 0.05),
+        stagger: getNumber(params.stagger, 0.1),
         scrollTrigger: params.scrollTrigger,
       });
     },
 
     // ➕ Added support for character-based animation with fade right
     letters: (element, params = {}) => {
-      gsap.from($(element).find(".char"), {
+      const chars = splitText(element, "chars");
+      if (!chars) return;
+      gsap.from(chars, {
         opacity: 0, // Start with 0 opacity
         xPercent: 50, // Start off-screen to the right
         duration: params.duration || 1,
         ease: params.ease || "power1.out",
-        stagger: getNumber(params.stagger, 0.05),
+        stagger: getNumber(params.stagger, 0.1),
         scrollTrigger: params.scrollTrigger,
       });
     },
@@ -540,7 +508,7 @@ const animations = {
         onComplete: () => $(element).css("transition-property", ""),
       });
     },
-
+  
     scroll: (element, params = {}) => {
       $(element).css("transition-property", "none");
       gsap.fromTo(
@@ -551,36 +519,26 @@ const animations = {
           scale: 1, // Scale to original size
           duration: params.duration || 1,
           ease: params.ease || "power1.out",
-          scrollTrigger: {
-            start: params.start || "top 80%",
-            end: params.end || "bottom 20%",
-            toggleActions: params.toggleActions || "play none none reverse",
-            scrub: params.scrub !== undefined ? params.scrub : true,
-          },
+          scrollTrigger: params.scrollTrigger,
           onComplete: () => $(element).css("transition-property", ""),
         }
       );
     },
-
+  
     stagger: (element, params = {}) => {
       $(element)
         .children()
         .each(function () {
           $(this).css("transition-property", "none");
         });
-
+  
       gsap.from($(element).children(), {
         opacity: 0, // Start with 0 opacity
         scale: 0.5, // Start scaled down
         duration: params.duration || 1,
         ease: params.ease || "power1.out",
         stagger: getNumber(params.stagger, 0.1),
-        scrollTrigger: {
-          start: params.start || "top 80%",
-          end: params.end || "bottom 20%",
-          toggleActions: params.toggleActions || "play none none reverse",
-          scrub: params.scrub !== undefined ? params.scrub : true,
-        },
+        scrollTrigger: params.scrollTrigger,
         onComplete: () => {
           $(element)
             .children()
@@ -590,29 +548,120 @@ const animations = {
         },
       });
     },
-
+  
     // ➕ Added support for word-based animation with scale-in
     words: (element, params = {}) => {
-      gsap.from($(element).find(".word"), {
+      const words = splitText(element, "words");
+      if (!words) return;
+      gsap.from(words, {
         opacity: 0, // Start with 0 opacity
         scale: 0.5, // Start scaled down
         duration: params.duration || 1,
         ease: params.ease || "back.out(2)",
-        stagger: getNumber(params.stagger, 0.05),
+        stagger: getNumber(params.stagger, 0.1),
         scrollTrigger: params.scrollTrigger,
       });
     },
-
+  
     // ➕ Added support for character-based animation with scale-in
     letters: (element, params = {}) => {
-      gsap.from($(element).find(".char"), {
+      const chars = splitText(element, "chars");
+      if (!chars) return;
+      gsap.from(chars, {
         opacity: 0, // Start with 0 opacity
         scale: 0.5, // Start scaled down
         duration: params.duration || 1,
         ease: params.ease || "power1.out",
-        stagger: getNumber(params.stagger, 0.05),
+        stagger: getNumber(params.stagger, 0.1),
         scrollTrigger: params.scrollTrigger,
       });
     },
   },
-};
+
+  "scale-up": {
+    standard: (element, params = {}) => {
+      $(element).css('transition-property', 'none');
+      gsap.from(element, {
+        opacity: 0,
+        scale: 0.5,
+        yPercent: 50,
+        duration: params.duration || 1,
+        ease: params.ease || 'power1.out',
+        scrollTrigger: params.scrollTrigger,
+        onComplete: () => $(element).css('transition-property', ''),
+      });
+    },
+
+    scroll: (element, params = {}) => {
+      $(element).css('transition-property', 'none');
+      gsap.fromTo(
+        element,
+        { opacity: 0, scale: 0.5, yPercent: 50 },
+        {
+          opacity: 1,
+          scale: 1,
+          yPercent: 0,
+          duration: params.duration || 1,
+          ease: params.ease || 'power1.out',
+          scrollTrigger: params.scrollTrigger,
+          onComplete: () => $(element).css('transition-property', ''),
+        }
+      );
+    },
+
+    stagger: (element, params = {}) => {
+      $(element)
+        .children()
+        .each(function () {
+          $(this).css('transition-property', 'none');
+        });
+
+      gsap.from($(element).children(), {
+        opacity: 0,
+        scale: 0.5,
+        yPercent: 50,
+        duration: params.duration || 1,
+        ease: params.ease || 'power1.out',
+        stagger: getNumber(params.stagger, 0.1),
+        scrollTrigger: params.scrollTrigger,
+        onComplete: () => {
+          $(element)
+            .children()
+            .each(function () {
+              $(this).css('transition-property', '');
+            });
+        },
+      });
+    },
+
+    words: (element, params = {}) => {
+      const words = splitText(element, 'words');
+      if (!words) return;
+      gsap.from(words, {
+        opacity: 0,
+        scale: 0.5,
+        yPercent: 50,
+        duration: params.duration || 1,
+        ease: params.ease || 'back.out(2)',
+        stagger: getNumber(params.stagger, 0.1),
+        scrollTrigger: params.scrollTrigger,
+      });
+    },
+
+    letters: (element, params = {}) => {
+      const chars = splitText(element, 'chars');
+      if (!chars) return;
+      gsap.from(chars, {
+        opacity: 0,
+        scale: 0.5,
+        yPercent: 50,
+        duration: params.duration || 1,
+        ease: params.ease || 'power1.out',
+        stagger: getNumber(params.stagger, 0.1),
+        scrollTrigger: params.scrollTrigger,
+      });
+    },
+  },
+}
+
+  
